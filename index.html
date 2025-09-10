@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nutoff</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <p class="subtitle">Minimized-risk nuts</p>
+      </header>
+
+      <main>
+        <section class="info-section">
+          <h2>About This Service</h2>
+          <p>
+            This server provides LNURL-PAY functionality for email-like
+            addresses, following the LUD-16 specification. It acts as a proxy to
+            resolve LNURL addresses using MCP (Model Context Protocol) servers.
+          </p>
+        </section>
+
+        <section class="features-section">
+          <h2>Features</h2>
+          <ul>
+            <li>LNURL-PAY endpoint for Lightning payments</li>
+            <li>MCP server integration for address resolution</li>
+            <li>Health check endpoint for monitoring</li>
+            <li>RESTful API for Lightning invoice generation</li>
+          </ul>
+        </section>
+
+        <section class="endpoints-section">
+          <h2>Available Endpoints</h2>
+          <div class="endpoint">
+            <code>GET /.well-known/lnurlp/:username</code>
+            <p>LNURL-P endpoint for payment requests</p>
+          </div>
+          <div class="endpoint">
+            <code>GET /lnurlp/callback/:username?amount=:amount</code>
+            <p>Callback endpoint for invoice generation</p>
+          </div>
+          <div class="endpoint">
+            <code>GET /health</code>
+            <p>Health check endpoint</p>
+          </div>
+        </section>
+
+        <section class="usage-section">
+          <h2>Usage Example</h2>
+          <p>To resolve an LNURL address, use:</p>
+          <code class="example"
+            >http://localhost:3000/.well-known/lnurlp/npub1example...</code
+          >
+        </section>
+      </main>
+
+      <footer>
+        <p>
+          Powered by <a href="https://bun.sh" target="_blank">Bun</a> and
+          Lightning Network
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>
