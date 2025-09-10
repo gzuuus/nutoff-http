@@ -98,6 +98,10 @@ const server = Bun.serve({
         // Get server info from MCP server using the npub as server pubkey
         const serverInfo = await mcpClientService.getInfo(npub);
 
+        // Extract domain from the request URL
+        const url = new URL(req.url);
+        const domain = `${url.protocol}//${url.host}`;
+
         // Generate metadata following LUD-06 specification
         const metadata = generateMetadata({
           username: npub,
@@ -110,7 +114,7 @@ const server = Bun.serve({
 
         // Create payment request response following LUD-06 format
         const paymentRequest: LnUrlRawData = {
-          callback: `http://localhost:3000/lnurlp/callback/${npub}`,
+          callback: `${domain}/lnurlp/callback/${npub}`,
           maxSendable: serverInfo.maxSendable || 100000000,
           minSendable: serverInfo.minSendable || 1000,
           metadata: metadata,
