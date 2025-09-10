@@ -74,9 +74,11 @@ const RELAYS = process.env.RELAYS
   ? process.env.RELAYS.split(",")
   : ["wss://relay.contextvm.org"];
 
+const CTX_CLIENT_PRIVATE_KEY = process.env.CTX_CLIENT_PRIVATE_KEY || undefined;
+
 // Initialize MCP client service
 const mcpClientService = new McpClientService({
-  clientPrivateKeyHex: undefined,
+  clientPrivateKeyHex: CTX_CLIENT_PRIVATE_KEY,
   relays: RELAYS,
 });
 
@@ -100,7 +102,7 @@ const server = Bun.serve({
 
         // Extract domain from the request URL
         const url = new URL(req.url);
-        const domain = `${url.protocol}//${url.host}`;
+        const domain = `https://${url.host}`;
 
         // Generate metadata following LUD-06 specification
         const metadata = generateMetadata({
@@ -166,9 +168,15 @@ const server = Bun.serve({
         );
       }
 
+      // Convert from millisats to sats for the MCP server
+      const amountSats = Math.floor(amount / 1000);
+
       try {
         // Request invoice from MCP server
-        const invoiceResult = await mcpClientService.makeInvoice(npub, amount);
+        const invoiceResult = await mcpClientService.makeInvoice(
+          npub,
+          amountSats,
+        );
 
         // Return invoice response following LUD-06 format
         const invoiceResponse: InvoiceResponse = {
