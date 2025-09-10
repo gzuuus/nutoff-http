@@ -88,7 +88,13 @@ const server = Bun.serve({
     const path = new URL(req.url).pathname;
     const method = req.method;
     console.log(`Received ${method} request for ${path}`);
-    return new Response("ok");
+    return new Response("ok", {
+      headers: {
+        "Access-Control-Allow-Origin": "*", // or specify a domain instead of '*'
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
   },
   routes: {
     // LNURL-P endpoint for LUD-16
