@@ -72,7 +72,7 @@ function generateMetadata(user: User, tag?: string): string {
 // Configuration for MCP client
 const RELAYS = process.env.RELAYS
   ? process.env.RELAYS.split(",")
-  : ["ws://localhost:10547"];
+  : ["wss://relay.contextvm.org"];
 
 // Initialize MCP client service
 const mcpClientService = new McpClientService({
@@ -82,10 +82,16 @@ const mcpClientService = new McpClientService({
 
 const server = Bun.serve({
   port: 3000,
+  async fetch(req) {
+    const path = new URL(req.url).pathname;
+    const method = req.method;
+    console.log(`Received ${method} request for ${path}`);
+    return new Response("ok");
+  },
   routes: {
     // LNURL-P endpoint for LUD-16
     // This endpoint handles the initial payment request
-    "/.well-known/lnurlp/:username": async (req, server) => {
+    "/.well-known/lnurlp/:username": async (req) => {
       const { username: npub } = req.params;
 
       try {
