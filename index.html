@@ -9,27 +9,82 @@
   <body>
     <div class="container">
       <header>
-        <p class="subtitle">Minimized-risk nuts</p>
+        <h1>Nutoff Wallet Proxy</h1>
       </header>
 
       <main>
         <section class="info-section">
-          <h2>About This Service</h2>
+          <h2>About Nutoff Wallet Proxy</h2>
           <p>
-            This server provides LNURL-PAY functionality for email-like
-            addresses, following the LUD-16 specification. It acts as a proxy to
-            resolve LNURL addresses using MCP (Model Context Protocol) servers.
+            Nutoff is a proxy service that enables you to use your local nutoff
+            wallet as a Lightning Address, even when running locally. The
+            service bridges the gap between your local wallet (reachable via
+            Nostr through contextvm) and the Lightning Network by providing an
+            HTTP interface that Lightning wallets can understand and interact
+            with.
           </p>
         </section>
 
         <section class="features-section">
           <h2>Features</h2>
           <ul>
-            <li>LNURL-PAY endpoint for Lightning payments</li>
-            <li>MCP server integration for address resolution</li>
-            <li>Health check endpoint for monitoring</li>
-            <li>RESTful API for Lightning invoice generation</li>
+            <li>Proxy for local nutoff wallets</li>
+            <li>Lightning Address support (LUD-16)</li>
+            <li>Nostr integration for local wallet connectivity</li>
+            <li>HTTP interface for Lightning wallet compatibility</li>
+            <li>Public service available for everyone</li>
           </ul>
+        </section>
+
+        <section class="getting-started-section">
+          <h2>Getting Started</h2>
+          <p>
+            Follow these steps to get your nutoff wallet working with the proxy:
+          </p>
+          <ol>
+            <li>
+              <strong>Install and run your nutoff wallet:</strong><br />
+              Visit
+              <a
+                href="https://github.com/gzuuus/nutoff-wallet"
+                target="_blank"
+                rel="noopener noreferrer"
+                >https://github.com/gzuuus/nutoff-wallet</a
+              >
+              and follow the installation instructions to run your local wallet.
+            </li>
+            <li>
+              <strong>Get your wallet's public key:</strong><br />
+              Once your wallet is running, obtain its public key.
+            </li>
+            <li>
+              <strong>Create your Lightning Address:</strong><br />
+              Your Lightning Address will be in the format:
+              <code>pubkey...@proxy.tls</code>
+            </li>
+            <li>
+              <strong>Start receiving payments:</strong><br />
+              Lightning wallets can now send payments to your address through
+              the proxy.
+            </li>
+          </ol>
+        </section>
+
+        <section class="about-proxy-section">
+          <h2>About the HTTP Proxy</h2>
+          <p>
+            The HTTP proxy is a public service that anyone can run. The source
+            code is available at
+            <a
+              href="https://github.com/gzuuus/nutoff-http"
+              target="_blank"
+              rel="noopener noreferrer"
+              >https://github.com/gzuuus/nutoff-http</a
+            >. This proxy translates between your local nutoff wallet (using
+            contextvm and Nostr) and the expected API interface of a Lightning
+            Address, making your locally wallet instantly reachable and usable
+            through the Lightning Network.
+          </p>
         </section>
 
         <section class="endpoints-section">
@@ -48,19 +103,45 @@
           </div>
         </section>
 
-        <section class="usage-section">
-          <h2>Usage Example</h2>
-          <p>To resolve an LNURL address, use:</p>
-          <code class="example"
-            >http://localhost:3000/.well-known/lnurlp/npub1example...</code
-          >
+        <section class="security-section">
+          <h2>Security & Privacy Model</h2>
+          <p>
+            Your security and privacy are paramount in the Nutoff architecture.
+            The proxy service has
+            <strong>no access to your wallet or your nuts</strong>. All your
+            funds and sensitive data remain local to your computer - there is no
+            database in the proxy that stores any of your information.
+          </p>
+          <p>
+            The proxy acts as a simple API adapter: it translates requests from
+            Lightning wallets into the format your local nutoff wallet
+            understands (via Nostr and contextvm), and forwards responses back.
+            It never handles your private keys, sees your balances, or has
+            access to your transaction history.
+          </p>
+          <p>Your are responsible for your own security and privacy.</p>
         </section>
       </main>
 
       <footer>
         <p>
-          Powered by <a href="https://bun.sh" target="_blank">Bun</a> and
-          Lightning Network
+          Powered by <a href="https://bun.sh" target="_blank">Bun</a>, Nutoff,
+          and ContextVM.
+        </p>
+        <p>
+          <a
+            href="https://github.com/gzuuus/nutoff-wallet"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Nutoff Wallet</a
+          >
+          |
+          <a
+            href="https://github.com/gzuuus/nutoff-http"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Proxy Source</a
+          >
         </p>
       </footer>
     </div>

@@ -251,6 +251,83 @@ const server = Bun.serve({
         example: "http://localhost:3000/.well-known/lnurlp/npub1example...",
       });
     },
+
+    // Wallet page endpoint
+    "/w/:walletpubkey": (
+      req: Request & { params: { walletpubkey: string } },
+    ) => {
+      const { walletpubkey } = req.params;
+      const url = new URL(req.url);
+      const walletAddress = `${walletpubkey}@${url.host}`;
+
+      return new Response(
+        `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Address</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+            word-break: break-all;
+            font-size: 1.2rem;
+        }
+        #qrcode {
+            margin: 1rem auto;
+        }
+        .address {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>${walletAddress}</h1>
+        <div id="qrcode"></div>
+        <div class="address">Scan this qr code with your wallet</div>
+    </div>
+    <script>
+        new QRCode(document.getElementById("qrcode"), {
+            text: "${walletAddress}",
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    </script>
+</body>
+</html>`,
+        {
+          headers: { "Content-Type": "text/html" },
+        },
+      );
+    },
   },
 
   // Global error handler
