@@ -51,10 +51,10 @@ const users: Record<string, User> = {
 };
 
 // Helper function to generate metadata array following LUD-06 specification
-function generateMetadata(user: User, tag?: string): string {
+function generateMetadata(user: User, tag?: string, host?: string): string {
   const metadata: string[][] = [
     ["text/plain", user.description],
-    ["text/identifier", `${user.username}@localhost`], // Using localhost for development
+    ["text/identifier", `${user.username}@${host ?? "localhost"}`],
   ];
 
   if (user.longDescription) {
