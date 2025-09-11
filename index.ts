@@ -111,14 +111,18 @@ const server = Bun.serve({
         const domain = `https://${url.host}`;
 
         // Generate metadata following LUD-06 specification
-        const metadata = generateMetadata({
-          username: npub,
-          minSendable: serverInfo.minSendable || 1000,
-          maxSendable: serverInfo.maxSendable || 100000000,
-          description: serverInfo.description || `Payment to ${npub}`,
-          longDescription: serverInfo.longDescription,
-          imageData: serverInfo.imageData,
-        });
+        const metadata = generateMetadata(
+          {
+            username: npub,
+            minSendable: serverInfo.minSendable || 1000,
+            maxSendable: serverInfo.maxSendable || 100000000,
+            description: serverInfo.description || `Payment to ${npub}`,
+            longDescription: serverInfo.longDescription,
+            imageData: serverInfo.imageData,
+          },
+          undefined,
+          url.host,
+        );
 
         // Create payment request response following LUD-06 format
         const paymentRequest: LnUrlRawData = {
