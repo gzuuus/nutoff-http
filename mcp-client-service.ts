@@ -86,7 +86,10 @@ export class McpClientService {
   /**
    * Calls the make_invoice method on the remote MCP server
    */
-  async makeInvoice(serverPubkey: string, amount: number): Promise<string> {
+  async makeInvoice(
+    serverPubkey: string,
+    amount: number,
+  ): Promise<{ invoice: string; quoteId: string }> {
     if (serverPubkey.startsWith("npub1")) {
       serverPubkey = decode(serverPubkey).data as string;
     }
@@ -98,7 +101,7 @@ export class McpClientService {
         arguments: { amount },
       });
       const parsed = JSON.parse((result.content as any[])[0].text).result;
-      return parsed.invoice;
+      return { invoice: parsed.invoice, quoteId: parsed.payment_hash };
     } catch (error) {
       console.error(
         `Failed to call make_invoice for server ${serverPubkey}:`,
@@ -106,6 +109,34 @@ export class McpClientService {
       );
       throw new Error(
         `Failed to make invoice from server: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Calls the lookup_invoice method on the remote MCP server
+   */
+  async lookupInvoice(serverPubkey: string, quoteId: string): Promise<any> {
+    if (serverPubkey.startsWith("npub1")) {
+      serverPubkey = decode(serverPubkey).data as string;
+    }
+    const client = await this.getClient(serverPubkey);
+
+    try {
+      const result = await client.callTool({
+        name: "lookup_invoice",
+        arguments: { payment_hash: quoteId },
+      });
+      const parsed = JSON.parse((result.content as any[])[0].text).result;
+      console.log("result", result, parsed);
+      return parsed;
+    } catch (error) {
+      console.error(
+        `Failed to call lookup_invoice for server ${serverPubkey}:`,
+        error,
+      );
+      throw new Error(
+        `Failed to lookup invoice from server: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

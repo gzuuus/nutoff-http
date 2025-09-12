@@ -16,7 +16,7 @@ export interface User {
 
 export interface InvoiceResponse {
   pr: string; // bech32-serialized lightning invoice
-  routes: []; // empty array
+  routes: string[]; // empty array
 }
 
 export interface ErrorResponse {
@@ -190,13 +190,57 @@ const server = Bun.serve({
 
         // Return invoice response following LUD-06 format
         const invoiceResponse: InvoiceResponse = {
-          pr: invoiceResult,
-          routes: [],
+          pr: invoiceResult.invoice,
+          routes: [invoiceResult.quoteId],
         };
 
         return Response.json(invoiceResponse);
       } catch (error) {
         console.error(`Failed to make invoice from server ${npub}:`, error);
+        return Response.json(
+          {
+            status: "ERROR",
+            reason:
+              error instanceof Error
+                ? error.message
+                : "Failed to create invoice",
+          } as ErrorResponse,
+          { status: 502 },
+        );
+      }
+    },
+
+    // Callback endpoint for invoice generation
+    // This endpoint handles the second request to generate a Lightning invoice
+    "/verify/:serverPubkey": async (req, server) => {
+      const url = new URL(req.url);
+      const { serverPubkey } = req.params;
+      const quoteId = url.searchParams.get("quoteId");
+
+      // Validate amount parameter
+      if (!quoteId) {
+        return Response.json(
+          {
+            status: "ERROR",
+            reason: "Missing amount parameter",
+          } as ErrorResponse,
+          { status: 400 },
+        );
+      }
+
+      try {
+        // Request invoice from MCP server
+        const lookupInvoiceResult = await mcpClientService.lookupInvoice(
+          serverPubkey,
+          quoteId,
+        );
+
+        return Response.json(lookupInvoiceResult);
+      } catch (error) {
+        console.error(
+          `Failed to make invoice from server ${serverPubkey}:`,
+          error,
+        );
         return Response.json(
           {
             status: "ERROR",
@@ -229,28 +273,6 @@ const server = Bun.serve({
     "/styles.css": new Response(Bun.file("./styles.css"), {
       headers: { "Content-Type": "text/css" },
     }),
-
-    // API endpoint for service information
-    "/api/info": () => {
-      return Response.json({
-        service: "LUD-16 LNURL Provider with MCP Proxy",
-        version: "2.0.0",
-        specification: "LUD-16",
-        description:
-          "Proxy server that resolves LNURL addresses using MCP servers",
-        endpoints: {
-          lnurlp: "/.well-known/lnurlp/:npub",
-          callback: "/lnurlp/callback/:npub",
-          health: "/health",
-        },
-        configuration: {
-          relays: RELAYS,
-        },
-        usage:
-          "Replace :npub with the server's npub to resolve LNURL addresses",
-        example: "http://localhost:3000/.well-known/lnurlp/npub1example...",
-      });
-    },
 
     // Wallet page endpoint
     "/w/:walletpubkey": async (
@@ -477,12 +499,19 @@ const server = Bun.serve({
                     <div id="invoiceQrCode" style="margin: 1.5rem auto; text-align: center;"></div>
                     <div id="invoiceText" class="invoice-text"></div>
                     <button id="copyInvoice" onclick="copyInvoiceToClipboard()">Copy Invoice</button>
+                    <div id="paymentStatus" style="margin-top: 1.5rem; padding: 1rem; border-radius: 8px; display: none;">
+                        <div id="statusText" style="font-weight: 600;"></div>
+                        <div id="statusDetails" style="margin-top: 0.5rem; font-size: 0.9rem;"></div>
+                    </div>
                 </div>
             </section>
         </main>
     </div>
     
     <script>
+        let currentQuoteId = null;
+        let paymentCheckInterval = null;
+
         // Generate QR code for wallet address
         new QRCode(document.getElementById("qrcode"), {
             text: "${walletAddress}",
@@ -503,11 +532,18 @@ const server = Bun.serve({
             const errorMessage = document.getElementById('errorMessage');
             const invoiceResult = document.getElementById('invoiceResult');
             
-            // Reset UI
+            // Reset UI and clear any existing payment check
             generateBtn.disabled = true;
             loadingSpinner.style.display = 'inline-block';
             errorMessage.style.display = 'none';
             invoiceResult.classList.remove('show');
+            
+            // Clear previous payment check interval
+            if (paymentCheckInterval) {
+                clearInterval(paymentCheckInterval);
+                paymentCheckInterval = null;
+            }
+            currentQuoteId = null;
             
             try {
                 // Call the callback endpoint to generate invoice
@@ -515,6 +551,9 @@ const server = Bun.serve({
                 const data = await response.json();
                 
                 if (response.ok && data.pr) {
+                    // Store the quoteId from the routes array
+                    currentQuoteId = data.routes[0];
+                    
                     // Show the invoice
                     document.getElementById('invoiceText').textContent = data.pr;
                     
@@ -531,6 +570,9 @@ const server = Bun.serve({
                     });
                     
                     invoiceResult.classList.add('show');
+                    
+                    // Start checking for payment
+                    startPaymentCheck();
                 } else {
                     // Show error
                     errorMessage.textContent = data.reason || 'Failed to generate invoice';
@@ -546,6 +588,66 @@ const server = Bun.serve({
             }
         });
 
+        // Function to check payment status
+        async function checkPaymentStatus() {
+            if (!currentQuoteId) return;
+            
+            try {
+                const response = await fetch('/verify/${walletpubkey}?quoteId=' + currentQuoteId);
+                const data = await response.json();
+                console.log(data);
+                const paymentStatus = document.getElementById('paymentStatus');
+                const statusText = document.getElementById('statusText');
+                const statusDetails = document.getElementById('statusDetails');
+                
+                if (response.ok) {
+                    if (data.paid || data.isIssued) {
+                        // Payment confirmed
+                        statusText.textContent = '✅ Payment Confirmed!';
+                        statusDetails.textContent = 'Your invoice has been paid successfully.';
+                        paymentStatus.style.backgroundColor = '#d4edda';
+                        paymentStatus.style.border = '1px solid #c3e6cb';
+                        paymentStatus.style.color = '#155724';
+                        paymentStatus.style.display = 'block';
+                        
+                        // Stop checking since payment is confirmed
+                        if (paymentCheckInterval) {
+                            clearInterval(paymentCheckInterval);
+                            paymentCheckInterval = null;
+                        }
+                    } else {
+                        // Payment pending
+                        statusText.textContent = '⏳ Waiting for Payment...';
+                        statusDetails.textContent = 'Invoice is unpaid. Keep this page open to monitor payment status.';
+                        paymentStatus.style.backgroundColor = '#fff3cd';
+                        paymentStatus.style.border = '1px solid #ffeaa7';
+                        paymentStatus.style.color = '#856404';
+                        paymentStatus.style.display = 'block';
+                    }
+                } else {
+                    // Error checking status
+                    statusText.textContent = '⚠️ Error checking payment status';
+                    statusDetails.textContent = data.reason || 'Unable to check payment status';
+                    paymentStatus.style.backgroundColor = '#f8d7da';
+                    paymentStatus.style.border = '1px solid #f5c6cb';
+                    paymentStatus.style.color = '#721c24';
+                    paymentStatus.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error checking payment status:', error);
+                // Don't show error in UI to avoid confusing user, just keep trying
+            }
+        }
+
+        // Function to start payment checking
+        function startPaymentCheck() {
+            // Check immediately
+            checkPaymentStatus();
+            
+            // Then check every 10 seconds
+            paymentCheckInterval = setInterval(checkPaymentStatus, 10000);
+        }
+
         // Copy invoice to clipboard
         function copyInvoiceToClipboard() {
             const invoiceText = document.getElementById('invoiceText').textContent;
@@ -560,6 +662,13 @@ const server = Bun.serve({
                 console.error('Could not copy text: ', err);
             });
         }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (paymentCheckInterval) {
+                clearInterval(paymentCheckInterval);
+            }
+        });
     </script>
 </body>
 </html>`,
